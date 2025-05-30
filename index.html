@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Roman Numeral AI Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background-color: #111;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .container {
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      text-align: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background-color: #1abc9c;
+      color: #fff;
+      border: none;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background-color: #16a085;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background-color: #222;
+      padding: 2rem;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+      position: relative;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+      color: #1abc9c;
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      font-size: 1.5rem;
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      color: #fff;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 0.7rem;
+      margin: 0.5rem 0;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    .file-label {
+      display: inline-block;
+      background-color: #1abc9c;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s;
+      text-align: center;
+      width: fit-content;
+    }
+
+    .file-label:hover {
+      background-color: #16a085;
+    }
+
+
+    #outputContainer {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    #imagePreview {
+      display: none;
+      max-width: 90%;
+      height: auto;
+      max-height: 300px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🌌 Roman Numeral AI Dashboard</h1>
+    <p>Welcome to an AI-powered Roman numeral prediction interface.</p>
+    <button class="btn" id="openModalBtn">Launch Form</button>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <button class="close-btn" id="closeModalBtn">&times;</button>
+      <h2>Upload Roman Numeral</h2>
+      <form id="uploadForm" style="display: flex; flex-direction: column; align-items: center;">
+        <label for="imageInput" class="file-label">📁 Choose Roman Numeral Image</label>
+        <input type="file" name="image" id="imageInput" required onchange="previewImage(event)" />
+
+        
+        <!-- This will show the uploaded file name -->
+        <div id="uploadStatus" style="margin-top: 0.7rem; font-size: 0.95rem; color: #1abc9c;"></div>
+      
+        <button type="submit" class="btn" style="margin-top: 1.2rem;">🔍 Predict</button>
+      </form>
+
+      <div id="outputContainer" style="text-align: center; margin-top: 20px;">
+        <img id="imagePreview" src="" alt="Uploaded Image Preview"
+        style="margin: 15px auto; max-width: 85%; max-height: 200px; border-radius: 12px; display: none; display: block;" />   
+        <div id="predictionResult" style="font-size: 1.6rem; font-weight: bold; margin-top: 10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modalOverlay = document.getElementById('modalOverlay');
+    const openBtn = document.getElementById('openModalBtn');
+    const closeBtn = document.getElementById('closeModalBtn');
+    const form = document.getElementById('uploadForm');
+
+    openBtn.onclick = () => {
+      modalOverlay.style.display = 'flex';
+    };
+
+    closeBtn.onclick = () => {
+      modalOverlay.style.display = 'none';
+    };
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById("imageInput");
+      const resultDiv = document.getElementById("predictionResult");
+      const imagePreview = document.getElementById("imagePreview");
+
+      if (!fileInput.files.length) {
+        alert("Please select an image.");
+        return;
+      }
+
+      // Show the selected image
+      const reader = new FileReader();
+      reader.onload = function () {
+        imagePreview.src = reader.result;
+        imagePreview.style.display = "block";
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+
+      const formData = new FormData();
+      formData.append("image", fileInput.files[0]);
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+        resultDiv.innerHTML = `🧠 <strong>Prediction:</strong> <span style="color:#1abc9c; font-size: 1.4rem;">${data.prediction}</span>`;
+      } catch (err) {
+        resultDiv.innerHTML = `❌ Error: ${err.message}`;
+      }
+    };
+
+    const uploadStatus = document.getElementById('uploadStatus');
+    const imageInput = document.getElementById('imageInput');
+
+    imageInput.onchange = () => {
+      if (imageInput.files.length > 0) {
+        const fileName = imageInput.files[0].name;
+        uploadStatus.innerHTML = `✔️ Selected File: <strong>${fileName}</strong>`;
+      } else {
+        uploadStatus.innerHTML = "";
+      }
+    };
+    function previewImage(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      const imagePreview = document.getElementById('imagePreview');
+    
+      if (file) {
+        reader.onload = function () {
+          imagePreview.src = reader.result;
+          imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        imagePreview.src = '';
+        imagePreview.style.display = 'none';
+      }
+    }
+    
+
+  </script>
+
+</body>
+</html>
